@@ -20,12 +20,12 @@ def fir_minphase(table, pad_size=8):
 
     # window the cepstrum in such a way that anticausal components become rejected
     cepstrum[1                :len(cepstrum)/2] *= 2;
-    cepstrum[len(cepstrum)/2+1:len(cepstrum)  ] *= 0;
+    cepstrum[len(cepstrum)/2+1:] *= 0;
 
     # now cancel the previous steps:
     # fft -> exp -> ifft -> real
     cepstrum = ifft(map(exp, fft(cepstrum)))
-    return map(lambda x: x.real, cepstrum[0:convolution_size])
+    return map(lambda x: x.real, cepstrum[:convolution_size])
 
 class BiquadFilter(object):
     __slots__ = ['b0', 'b1', 'b2', 'a1', 'a2', 'x1', 'x2', 'y1', 'y2']
@@ -95,18 +95,11 @@ def quantize(x, bits, scale=False):
     x = list(x)
     fact = 2 ** bits
 
-    # this adjusts range precisely between -65536 and 0 so that our bleps look right.
-    correction_factor = 1.0
-    if scale:
-        correction_factor = x[-1] - x[0]
-
+    correction_factor = x[-1] - x[0] if scale else 1.0
     for _ in range(len(x)):
         val = x[_] * fact / correction_factor;
         # correct rounding
-        if val < 0:
-            val = int(val - 0.5)
-        else:
-            val = int(val + 0.5)
+        val = int(val - 0.5) if val < 0 else int(val + 0.5)
         # leave scaled?
         if not scale:
             val /= float(fact)
@@ -140,15 +133,13 @@ def print_fir(table, format='gnuplot'):
         print "    },"
 
 def integrate(table):
-    total = 0
-    for _ in table:
-        total += _
+    total = sum(table)
     startval = -total
     new = []
     for _ in table:
         startval += _
         new.append(startval)
-    
+
     return new
 
 def run_filter(flt, table):
@@ -158,12 +149,7 @@ def run_filter(flt, table):
     for _ in range(10000):
         flt.filter(table[0])
 
-    # now run the filter
-    newtable = []
-    for _ in range(len(table)):
-        newtable.append(flt.filter(table[_]))
-
-    return newtable
+    return [flt.filter(table[_]) for _ in range(len(table))]
 
 AMIGA_PAL_CLOCK = 3546895
 def main():

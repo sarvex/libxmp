@@ -7,7 +7,7 @@ import hashlib
 
 
 ROOT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(ROOT_PATH + "/../libxmp-python")
+sys.path.append(f"{ROOT_PATH}/../libxmp-python")
 
 from pyxmp import *
 
